@@ -1,0 +1,85 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Category {
+  CUSTOMER
+  VENDOR
+}
+
+enum Role {
+  BD
+  PVD
+  IT
+  USER
+}
+
+enum UserStatus {
+  PENDING
+  ACTIVE
+}
+
+model User {
+  id        Int        @id @default(autoincrement())
+  name      String
+  email     String     @unique
+  password  String
+  role      Role       @default(USER)
+  status    UserStatus @default(PENDING)
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+model Part {
+  id             String       @id
+  category       Category
+  customerVendor String       @map("customer_vendor")
+  model          String
+  partNo         String       @unique @map("part_no")
+  partName       String       @map("part_name")
+  sop            String
+  toolingCost    Float        @map("tooling_cost")
+  packagingCost  Float        @map("packaging_cost")
+  others         Float
+  ammVol         Int          @map("amm_vol")
+  totalCost      Float        @map("total_cost")
+  totalQtyDel    Int          @default(0) @map("total_qty_del")
+  totalBalQty    Int          @map("total_bal_qty")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+  yearRecords    YearRecord[]
+
+  @@map("parts")
+}
+
+model YearRecord {
+  id                  Int             @id @default(autoincrement())
+  year                String
+  qtyDel              Int             @map("qty_del")
+  investmentRecovered Float           @map("investment_recovered")
+  balanceInvestment   Float           @map("balance_investment")
+  partId              String          @map("part_id")
+  part                Part            @relation(fields: [partId], references: [id], onDelete: Cascade)
+  monthlyRecords      MonthlyRecord[]
+
+  @@unique([partId, year])
+  @@map("year_records")
+}
+
+model MonthlyRecord {
+  id           Int        @id @default(autoincrement())
+  month        String
+  qty          Int
+  yearRecordId Int        @map("year_record_id")
+  yearRecord   YearRecord @relation(fields: [yearRecordId], references: [id], onDelete: Cascade)
+
+  @@unique([yearRecordId, month])
+  @@map("monthly_records")
+}
