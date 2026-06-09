@@ -139,7 +139,7 @@ export default function DashboardClient({ initialRecords, role, userName }: Prop
 
           {/* User info bar */}
           <div className="flex items-center justify-between mb-5 py-2 border-b border-white/10">
-            {roleMeta ? (
+            {roleMeta && (
               <>
                 <div className="flex items-center gap-2">
                   <span className={`text-[11px] font-bold px-2 py-0.5 rounded border ${roleMeta.color}`}>
@@ -159,6 +159,15 @@ export default function DashboardClient({ initialRecords, role, userName }: Prop
                       Admin
                     </Link>
                   )}
+                  <Link
+                    href="/profile"
+                    className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-300 hover:text-white bg-white/10 hover:bg-white/20 border border-white/20 px-2.5 py-1 rounded-lg transition-colors"
+                  >
+                    <svg className="h-3 w-3" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M10 8a3 3 0 100-6 3 3 0 000 6zM3.465 14.493a1.23 1.23 0 00.41 1.412A9.957 9.957 0 0010 18c2.31 0 4.438-.784 6.131-2.1.43-.333.604-.903.408-1.41a7.002 7.002 0 00-13.074.003z" />
+                    </svg>
+                    Profile
+                  </Link>
                   <form action={logout}>
                     <button
                       type="submit"
@@ -172,20 +181,6 @@ export default function DashboardClient({ initialRecords, role, userName }: Prop
                     </button>
                   </form>
                 </div>
-              </>
-            ) : (
-              <>
-                <span className="text-xs text-slate-400">Viewing as guest</span>
-                <Link
-                  href="/login"
-                  className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-300 hover:text-white bg-white/10 hover:bg-white/20 border border-white/20 px-2.5 py-1 rounded-lg transition-colors"
-                >
-                  <svg className="h-3 w-3" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M3 4.25A2.25 2.25 0 015.25 2h5.5A2.25 2.25 0 0113 4.25v2a.75.75 0 01-1.5 0v-2a.75.75 0 00-.75-.75h-5.5a.75.75 0 00-.75.75v11.5c0 .414.336.75.75.75h5.5a.75.75 0 00.75-.75v-2a.75.75 0 011.5 0v2A2.25 2.25 0 0110.75 18h-5.5A2.25 2.25 0 013 15.75V4.25z" clipRule="evenodd" />
-                    <path fillRule="evenodd" d="M16.72 10.53a.75.75 0 000-1.06l-3.75-3.75a.75.75 0 10-1.06 1.06l2.47 2.47H6.75a.75.75 0 000 1.5h7.63l-2.47 2.47a.75.75 0 101.06 1.06l3.75-3.75z" clipRule="evenodd" />
-                  </svg>
-                  Login
-                </Link>
               </>
             )}
           </div>

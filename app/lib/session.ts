@@ -9,14 +9,20 @@ export type SessionPayload = {
   expiresAt: Date;
 };
 
-const secretKey = process.env.SESSION_SECRET!;
+const secretKey = process.env.SESSION_SECRET;
+if (!secretKey || secretKey.length < 32) {
+  throw new Error(
+    "SESSION_SECRET environment variable is missing or too short (minimum 32 characters). " +
+    "Set it in your .env file before starting the server."
+  );
+}
 const encodedKey = new TextEncoder().encode(secretKey);
 
 export async function encrypt(payload: Omit<SessionPayload, "expiresAt"> & { expiresAt: Date }) {
   return new SignJWT({ ...payload })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
-    .setExpirationTime("7d")
+    .setExpirationTime("8h")
     .sign(encodedKey);
 }
 
@@ -31,7 +37,7 @@ export async function decrypt(token: string | undefined = ""): Promise<SessionPa
 }
 
 export async function createSession(data: Omit<SessionPayload, "expiresAt">) {
-  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  const expiresAt = new Date(Date.now() + 8 * 60 * 60 * 1000);
   const token = await encrypt({ ...data, expiresAt });
   const cookieStore = await cookies();
   cookieStore.set("session", token, {

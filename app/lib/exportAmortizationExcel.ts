@@ -211,13 +211,29 @@ export async function exportAmortizationToExcel(
       styleCell(balCell, { fill, align: { horizontal: "right", vertical: "middle" }, numFmt: "#,##0.00" });
     });
 
-    const totalQtyCell = sheet.getCell(row, summaryStartCol);
+    const sortedYears = Object.keys(record.years).sort();
+    const lastYearKey = sortedYears.at(-1);
+    const lastBalance = lastYearKey ? record.years[lastYearKey].balanceInvestment : record.totalCost;
+    const remarks = lastBalance > 0 ? "VALID" : "OVERCLAIM";
+    const remarksCell = sheet.getCell(row, summaryStartCol);
+    remarksCell.value = remarks;
+    styleCell(remarksCell, {
+      fill: remarks === "VALID" ? "FFE2EFDA" : "FFFCE4D6",
+      bold: true,
+      align: { horizontal: "center", vertical: "middle" },
+    });
+
+    const totalQtyCell = sheet.getCell(row, summaryStartCol + 1);
     totalQtyCell.value = record.totalQtyDel;
     styleCell(totalQtyCell, { fill: "FFFFFFFF", align: { horizontal: "right", vertical: "middle" }, numFmt: "#,##0" });
 
-    const totalBalCell = sheet.getCell(row, summaryStartCol + 1);
+    const totalBalCell = sheet.getCell(row, summaryStartCol + 2);
     totalBalCell.value = record.totalBalQty;
     styleCell(totalBalCell, { fill: "FFFFFFFF", align: { horizontal: "right", vertical: "middle" }, numFmt: "#,##0" });
+
+    const totalInvCell = sheet.getCell(row, summaryStartCol + 3);
+    totalInvCell.value = record.totalCost;
+    styleCell(totalInvCell, { fill: "FFFFFFFF", align: { horizontal: "right", vertical: "middle" }, numFmt: "#,##0.00" });
   });
 
   // ── Column widths ────────────────────────────────────────────────────────

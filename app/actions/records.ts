@@ -48,6 +48,7 @@ const includeRelations = {
 } as const;
 
 export async function getAllRecords(): Promise<AmortizationRecord[]> {
+  await verifySession();
   const parts = await prisma.part.findMany({
     ...includeRelations,
     orderBy: { partNo: "asc" },
@@ -56,6 +57,7 @@ export async function getAllRecords(): Promise<AmortizationRecord[]> {
 }
 
 export async function getPartById(id: string): Promise<AmortizationRecord | null> {
+  await verifySession();
   const part = await prisma.part.findUnique({
     where: { id },
     ...includeRelations,
@@ -114,13 +116,89 @@ export async function createRecord(record: AmortizationRecord): Promise<void> {
   if (role === "BD" && record.category !== "CUSTOMER") throw new Error("BD role can only add CUSTOMER records.");
   if (role === "PVD" && record.category !== "VENDOR") throw new Error("PVD role can only add VENDOR records.");
 
+  const normalizedId = record.partNo.trim().toUpperCase();
   await prisma.part.create({
     data: {
-      id: record.id,
+      id: normalizedId,
       ...partDataInput(record),
       yearRecords: { create: yearRecordsCreateInput(record) },
     },
   });
+  revalidatePath("/");
+}
+
+export async function deleteRecord(id: string): Promise<void> {
+  const session = await verifySession();
+  if (session.role !== "IT") throw new Error("Forbidden: only IT admins can delete records.");
+
+  await prisma.part.delete({ where: { id } });
+  revalidatePath("/");
+}
+
+export type UpdateRecordInput = {
+  category: "CUSTOMER" | "VENDOR";
+  customerVendor: string;
+  model: string;
+  partName: string;
+  sop: string;
+  toolingCost: number;
+  packagingCost: number;
+  others: number;
+  ammVol: number;
+};
+
+export async function updateRecord(id: string, updates: UpdateRecordInput): Promise<void> {
+  const session = await verifySession();
+  const { role } = session;
+  if (role === "USER") throw new Error("Forbidden: view-only role.");
+
+  const part = await prisma.part.findUnique({
+    where: { id },
+    include: { yearRecords: { orderBy: { year: "asc" } } },
+  });
+  if (!part) throw new Error("Part not found.");
+
+  // Validate against the existing record's category, not just the submitted value
+  if (role === "BD" && part.category !== "CUSTOMER") throw new Error("BD role can only edit CUSTOMER records.");
+  if (role === "PVD" && part.category !== "VENDOR") throw new Error("PVD role can only edit VENDOR records.");
+  // Also prevent BD/PVD from changing category
+  if (role === "BD" && updates.category !== "CUSTOMER") throw new Error("BD role cannot change category.");
+  if (role === "PVD" && updates.category !== "VENDOR") throw new Error("PVD role cannot change category.");
+
+  const newRate = updates.toolingCost + updates.packagingCost + updates.others;
+  const newTotalCost = newRate * updates.ammVol;
+
+  let runningBalance = newTotalCost;
+  for (const yr of part.yearRecords) {
+    const investmentRecovered = yr.qtyDel * newRate;
+    runningBalance -= investmentRecovered;
+    await prisma.yearRecord.update({
+      where: { id: yr.id },
+      data: { investmentRecovered, balanceInvestment: runningBalance },
+    });
+  }
+
+  const totalQtyDel = part.yearRecords.reduce((s, yr) => s + yr.qtyDel, 0);
+
+  await prisma.part.update({
+    where: { id },
+    data: {
+      category: updates.category,
+      customerVendor: updates.customerVendor,
+      model: updates.model,
+      partName: updates.partName,
+      sop: updates.sop,
+      toolingCost: updates.toolingCost,
+      packagingCost: updates.packagingCost,
+      others: updates.others,
+      ammVol: updates.ammVol,
+      totalCost: newTotalCost,
+      totalQtyDel,
+      totalBalQty: updates.ammVol - totalQtyDel,
+    },
+  });
+
+  revalidatePath(`/parts/${id}`);
   revalidatePath("/");
 }
 
@@ -135,6 +213,15 @@ export async function importRecords(records: AmortizationRecord[]): Promise<Impo
   const result: ImportRecordsResult = { created: 0, updated: 0, errors: [] };
 
   for (const record of records) {
+    // Enforce category restriction per record for BD/PVD roles
+    if (role === "BD" && record.category !== "CUSTOMER") {
+      result.errors.push(`${record.partNo}: BD role cannot import VENDOR records.`);
+      continue;
+    }
+    if (role === "PVD" && record.category !== "VENDOR") {
+      result.errors.push(`${record.partNo}: PVD role cannot import CUSTOMER records.`);
+      continue;
+    }
     try {
       const existing = await prisma.part.findUnique({
         where: { partNo: record.partNo },

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   createUser,
+  updateUser,
   updateUserRole,
   approveUser,
   rejectUser,
@@ -112,6 +113,66 @@ function AddUserForm({ onSuccess }: { onSuccess: () => void }) {
         </button>
       </div>
     </form>
+  );
+}
+
+function EditUserModal({ user, onClose }: { user: UserRow; onClose: () => void }) {
+  const [state, action, pending] = useActionState<UserFormState, FormData>(updateUser, undefined);
+
+  useEffect(() => {
+    if (state?.success) onClose();
+  }, [state?.success, onClose]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+        <h3 className="text-sm font-extrabold text-gray-900 mb-1">Edit User</h3>
+        <p className="text-xs text-gray-500 mb-4">Update name or email for <span className="font-semibold">{user.name}</span></p>
+        <form action={action} className="space-y-3">
+          <input type="hidden" name="userId" value={user.id} />
+          <div>
+            <label className="block text-xs font-semibold text-gray-700 mb-1">Full Name</label>
+            <input
+              name="name"
+              required
+              defaultValue={user.name}
+              disabled={pending}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-50"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-700 mb-1">Email</label>
+            <input
+              name="email"
+              type="email"
+              required
+              defaultValue={user.email}
+              disabled={pending}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-50"
+            />
+          </div>
+          {state?.error && (
+            <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{state.error}</p>
+          )}
+          <div className="flex gap-2 pt-1">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 rounded-lg border border-gray-300 bg-white text-gray-700 text-sm font-semibold py-2 hover:bg-gray-50 transition-colors cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={pending}
+              className="flex-1 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-bold py-2 transition-colors cursor-pointer"
+            >
+              {pending ? "Saving…" : "Save"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 }
 
@@ -233,6 +294,7 @@ type Props = { users: UserRow[]; currentUserId: number };
 export default function AdminClient({ users: initialUsers, currentUserId }: Props) {
   const router = useRouter();
   const [showAddForm, setShowAddForm] = useState(false);
+  const [editTarget, setEditTarget] = useState<UserRow | null>(null);
   const [resetTarget, setResetTarget] = useState<UserRow | null>(null);
   const [approveTarget, setApproveTarget] = useState<UserRow | null>(null);
   const [roleErrors, setRoleErrors] = useState<Record<number, string>>({});
@@ -435,6 +497,15 @@ export default function AdminClient({ users: initialUsers, currentUserId }: Prop
 
                   <button
                     type="button"
+                    onClick={() => setEditTarget(user)}
+                    disabled={isPending}
+                    className="text-xs font-semibold text-gray-600 hover:text-gray-900 border border-gray-300 bg-white hover:bg-gray-50 px-2.5 py-1.5 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
+                  >
+                    Edit
+                  </button>
+
+                  <button
+                    type="button"
                     onClick={() => setResetTarget(user)}
                     disabled={isPending}
                     className="text-xs font-semibold text-gray-600 hover:text-gray-900 border border-gray-300 bg-white hover:bg-gray-50 px-2.5 py-1.5 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
@@ -465,6 +536,10 @@ export default function AdminClient({ users: initialUsers, currentUserId }: Prop
         </div>
 
       </main>
+
+      {editTarget && (
+        <EditUserModal user={editTarget} onClose={() => { setEditTarget(null); router.refresh(); }} />
+      )}
 
       {resetTarget && (
         <ResetPasswordModal user={resetTarget} onClose={() => setResetTarget(null)} />

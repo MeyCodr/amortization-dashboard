@@ -290,8 +290,8 @@ function findSummaryColumns(headerRow: ExcelJS.Row): { totalQtyCol?: number; tot
   let totalBalCol: number | undefined;
   headerRow.eachCell({ includeEmpty: false }, (cell, col) => {
     const label = normalizeHeader(cellText(cell));
-    if (label === normalizeHeader(SUMMARY_HEADERS[0])) totalQtyCol = col;
-    if (label === normalizeHeader(SUMMARY_HEADERS[1])) totalBalCol = col;
+    if (label === normalizeHeader(SUMMARY_HEADERS[1])) totalQtyCol = col;
+    if (label === normalizeHeader(SUMMARY_HEADERS[2])) totalBalCol = col;
   });
   return { totalQtyCol, totalBalCol };
 }

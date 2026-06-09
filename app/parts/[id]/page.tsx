@@ -2,6 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getPartById } from "../../actions/records";
 import YearCardCarousel from "../../components/YearCardCarousel";
+import EditRecordButton from "../../components/EditRecordButton";
+import DeleteRecordButton from "../../components/DeleteRecordButton";
+import { getCurrentSession } from "../../lib/dal";
 
 const fmtN = (n: number) => new Intl.NumberFormat("en-US").format(Math.round(n));
 const fmtC = (n: number) =>
@@ -35,8 +38,13 @@ function InfoRow({ label, value }: { label: string; value: string }) {
 
 export default async function PartDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const part = await getPartById(id);
+  const [part, session] = await Promise.all([getPartById(id), getCurrentSession()]);
   if (!part) notFound();
+
+  const role = session?.role ?? "USER";
+  const canEdit = role !== "USER";
+  const lockedCategory =
+    role === "BD" ? "CUSTOMER" : role === "PVD" ? "VENDOR" : null;
 
   const sortedYears = Object.keys(part.years).sort();
   const totalRecovered = Object.values(part.years).reduce((s, y) => s + y.investmentRecovered, 0);
@@ -63,13 +71,17 @@ export default async function PartDetailPage({ params }: { params: Promise<{ id:
 
       {/* ── HERO ── */}
       <div className="bg-gradient-to-br from-slate-800 via-slate-700 to-slate-900">
-        <div className="mx-auto max-w-screen-xl px-8 pt-5">
+        <div className="mx-auto max-w-screen-xl px-8 pt-5 flex items-center justify-between">
           <Link href="/" className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-200 hover:text-white transition-colors">
             <svg className="h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z" clipRule="evenodd" />
             </svg>
             Amortization Dashboard
           </Link>
+          <div className="flex items-center gap-2">
+            {canEdit && <EditRecordButton part={part} lockedCategory={lockedCategory} />}
+            {role === "IT" && <DeleteRecordButton partId={part.id} partName={part.partName} />}
+          </div>
         </div>
 
         <div className="mx-auto max-w-screen-xl px-8 pb-8 pt-4">

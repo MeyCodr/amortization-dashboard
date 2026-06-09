@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getPartById } from "../../../actions/records";
 import MonthlyPageClient from "./MonthlyPageClient";
 import { MONTH_ORDER } from "../../../data/amortization";
+import { getCurrentSession } from "../../../lib/dal";
 
 export default async function MonthlyBreakdownPage({
   params,
@@ -9,7 +10,7 @@ export default async function MonthlyBreakdownPage({
   params: Promise<{ id: string; year: string }>;
 }) {
   const { id, year } = await params;
-  const part = await getPartById(id);
+  const [part, session] = await Promise.all([getPartById(id), getCurrentSession()]);
   if (!part) notFound();
 
   const yearData = part.years[year] ?? null;
@@ -31,6 +32,7 @@ export default async function MonthlyBreakdownPage({
       year={year}
       initialMonths={initialMonths}
       existingAnnualQty={existingAnnualQty}
+      role={session?.role ?? "USER"}
     />
   );
 }

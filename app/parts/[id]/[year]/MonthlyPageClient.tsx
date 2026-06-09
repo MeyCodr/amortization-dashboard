@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { AmortizationRecord, MONTH_ORDER } from "../../../data/amortization";
-import { saveMonthlyData } from "../../../actions/monthly";
+import { saveMonthlyData, deleteMonthlyRecord } from "../../../actions/monthly";
 
 const fmtN = (n: number) => new Intl.NumberFormat("en-US").format(Math.round(n));
 const fmtC = (n: number) =>
@@ -16,15 +16,21 @@ type Props = {
   year: string;
   initialMonths: Record<string, number>;
   existingAnnualQty: number | null;
+  role: string;
 };
 
-export default function MonthlyPageClient({ part, year, initialMonths, existingAnnualQty }: Props) {
+export default function MonthlyPageClient({ part, year, initialMonths, existingAnnualQty, role }: Props) {
   const [months, setMonths] = useState<Record<string, number>>(initialMonths);
   const [modal, setModal] = useState<ModalState | null>(null);
   const [qtyInput, setQtyInput] = useState("");
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState<string | null>(null);
+
+  const isAdmin = role === "IT";
 
   const id = part.id;
+  const currentYear = new Date().getFullYear().toString();
+  const isCurrentYear = year === currentYear;
   const ratePerUnit = part.toolingCost + part.packagingCost + part.others;
   const recordedMonths = MONTH_ORDER.filter((m) => (months[m] ?? 0) > 0);
   const unrecordedMonths = MONTH_ORDER.filter((m) => (months[m] ?? 0) === 0);
@@ -44,6 +50,22 @@ export default function MonthlyPageClient({ part, year, initialMonths, existingA
   function openUpdate(month: string) {
     setModal({ mode: "update", month, current: months[month] ?? 0 });
     setQtyInput(String(months[month] ?? 0));
+  }
+
+  async function handleDelete(month: string) {
+    if (!confirm(`Delete the ${month} record? This will recalculate all year totals.`)) return;
+    setDeleting(month);
+    try {
+      const updated = { ...months };
+      delete updated[month];
+      setMonths(updated);
+      await deleteMonthlyRecord(id, year, month);
+    } catch (err) {
+      setMonths(months);
+      alert((err as Error).message);
+    } finally {
+      setDeleting(null);
+    }
   }
 
   async function handleModalSave() {
@@ -119,16 +141,25 @@ export default function MonthlyPageClient({ part, year, initialMonths, existingA
                 {saving && <span className="ml-2 text-blue-500">Saving…</span>}
               </p>
             </div>
-            <button
-              onClick={openAdd}
-              disabled={unrecordedMonths.length === 0}
-              className="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-colors"
-            >
-              <svg className="h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
-              </svg>
-              Add Record
-            </button>
+            {isCurrentYear ? (
+              <button
+                onClick={openAdd}
+                disabled={unrecordedMonths.length === 0}
+                className="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-colors"
+              >
+                <svg className="h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
+                </svg>
+                Add Record
+              </button>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-lg">
+                <svg className="h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clipRule="evenodd" />
+                </svg>
+                Past year — view only
+              </span>
+            )}
           </div>
 
           {recordedMonths.length === 0 ? (
@@ -168,16 +199,37 @@ export default function MonthlyPageClient({ part, year, initialMonths, existingA
                         <td className="px-6 py-3.5 text-right font-semibold text-gray-600">{fmtN(cQty)}</td>
                         <td className="px-6 py-3.5 text-right font-bold text-emerald-600">{fmtC(cRec)}</td>
                         <td className="px-6 py-3.5 text-right">
-                          <button
-                            onClick={() => openUpdate(month)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-gray-200 text-[10px] font-bold text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
-                          >
-                            <svg className="h-3 w-3" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                              <path d="M5.433 13.917l1.262-3.155A4 4 0 017.58 9.42l6.92-6.918a2.121 2.121 0 013 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 01-.65-.65z" />
-                              <path d="M3.5 5.75c0-.69.56-1.25 1.25-1.25H10A.75.75 0 0010 3H4.75A2.75 2.75 0 002 5.75v9.5A2.75 2.75 0 004.75 18h9.5A2.75 2.75 0 0017 15.25V10a.75.75 0 00-1.5 0v5.25c0 .69-.56 1.25-1.25 1.25h-9.5c-.69 0-1.25-.56-1.25-1.25v-9.5z" />
-                            </svg>
-                            Update
-                          </button>
+                          <div className="inline-flex items-center gap-1.5">
+                            {isCurrentYear && <button
+                              onClick={() => openUpdate(month)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-gray-200 text-[10px] font-bold text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
+                            >
+                              <svg className="h-3 w-3" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                <path d="M5.433 13.917l1.262-3.155A4 4 0 017.58 9.42l6.92-6.918a2.121 2.121 0 013 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 01-.65-.65z" />
+                                <path d="M3.5 5.75c0-.69.56-1.25 1.25-1.25H10A.75.75 0 0010 3H4.75A2.75 2.75 0 002 5.75v9.5A2.75 2.75 0 004.75 18h9.5A2.75 2.75 0 0017 15.25V10a.75.75 0 00-1.5 0v5.25c0 .69-.56 1.25-1.25 1.25h-9.5c-.69 0-1.25-.56-1.25-1.25v-9.5z" />
+                              </svg>
+                              Update
+                            </button>}
+                            {isAdmin && (
+                              <button
+                                onClick={() => handleDelete(month)}
+                                disabled={deleting === month}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-red-200 text-[10px] font-bold text-red-600 bg-red-50 hover:bg-red-100 disabled:opacity-50 transition-colors cursor-pointer"
+                              >
+                                {deleting === month ? (
+                                  <svg className="h-3 w-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                                  </svg>
+                                ) : (
+                                  <svg className="h-3 w-3" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M8.75 1A2.75 2.75 0 006 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 10.23 1.482l.149-.022.841 10.518A2.75 2.75 0 007.596 19h4.807a2.75 2.75 0 002.742-2.53l.841-10.52.149.023a.75.75 0 00.23-1.482A41.03 41.03 0 0014 4.193V3.75A2.75 2.75 0 0011.25 1h-2.5zM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4zM8.58 7.72a.75.75 0 00-1.5.06l.3 7.5a.75.75 0 101.5-.06l-.3-7.5zm4.34.06a.75.75 0 10-1.5-.06l-.3 7.5a.75.75 0 101.5.06l.3-7.5z" clipRule="evenodd" />
+                                  </svg>
+                                )}
+                                Delete
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     );

@@ -2,12 +2,21 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "../lib/db";
+import { verifySession } from "../lib/dal";
 
 export async function saveMonthlyData(
   partId: string,
   year: string,
   months: Record<string, number>
 ): Promise<void> {
+  const session = await verifySession();
+  if (session.role === "USER") throw new Error("Forbidden: view-only role.");
+  if (!/^\d{4}$/.test(year)) throw new Error("Invalid year format.");
+  if (typeof partId !== "string" || !partId.trim()) throw new Error("Invalid part ID.");
+
+  const currentYear = new Date().getFullYear().toString();
+  if (year !== currentYear) throw new Error("Monthly deliveries can only be edited for the current year.");
+
   const part = await prisma.part.findUnique({
     where: { id: partId },
     include: {
@@ -74,6 +83,65 @@ export async function saveMonthlyData(
   // Update part totals
   const totalQtyDel = part.yearRecords.reduce(
     (s, yr) => s + (yr.year === year ? newYearQty : yr.qtyDel),
+    0
+  );
+  await prisma.part.update({
+    where: { id: partId },
+    data: { totalQtyDel, totalBalQty: part.ammVol - totalQtyDel },
+  });
+
+  revalidatePath(`/parts/${partId}/${year}`);
+  revalidatePath(`/parts/${partId}`);
+  revalidatePath("/");
+}
+
+export async function deleteMonthlyRecord(
+  partId: string,
+  year: string,
+  month: string
+): Promise<void> {
+  const session = await verifySession();
+  if (session.role !== "IT") throw new Error("Forbidden: only IT admins can delete monthly records.");
+  if (!/^\d{4}$/.test(year)) throw new Error("Invalid year format.");
+  if (typeof partId !== "string" || !partId.trim()) throw new Error("Invalid part ID.");
+
+  const part = await prisma.part.findUnique({
+    where: { id: partId },
+    include: {
+      yearRecords: {
+        include: { monthlyRecords: true },
+        orderBy: { year: "asc" },
+      },
+    },
+  });
+  if (!part) return;
+
+  const yearRecord = part.yearRecords.find((y) => y.year === year);
+  if (!yearRecord) return;
+
+  await prisma.monthlyRecord.deleteMany({
+    where: { yearRecordId: yearRecord.id, month },
+  });
+
+  const ratePerUnit = part.toolingCost + part.packagingCost + part.others;
+  const remainingQty = yearRecord.monthlyRecords
+    .filter((r) => r.month !== month)
+    .reduce((s, r) => s + r.qty, 0);
+
+  // Recalculate running balance across all years
+  let runningBalance = part.totalCost;
+  for (const yr of part.yearRecords) {
+    const qtyDel = yr.year === year ? remainingQty : yr.qtyDel;
+    const investmentRecovered = qtyDel * ratePerUnit;
+    runningBalance -= investmentRecovered;
+    await prisma.yearRecord.update({
+      where: { id: yr.id },
+      data: { qtyDel, investmentRecovered, balanceInvestment: runningBalance },
+    });
+  }
+
+  const totalQtyDel = part.yearRecords.reduce(
+    (s, yr) => s + (yr.year === year ? remainingQty : yr.qtyDel),
     0
   );
   await prisma.part.update({
