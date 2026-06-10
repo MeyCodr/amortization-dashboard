@@ -15,6 +15,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Amortization Volume Tracker",
   description: "Tooling & packaging cost recovery by part — PHN Manufacturing",
+  icons: {
+    icon: "/phnavt/avt_icon-2.png",
+  },
 };
 
 export default function RootLayout({
