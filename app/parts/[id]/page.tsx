@@ -71,7 +71,7 @@ export default async function PartDetailPage({ params }: { params: Promise<{ id:
 
       {/* ── HERO ── */}
       <div className="bg-gradient-to-br from-slate-800 via-slate-700 to-slate-900">
-        <div className="mx-auto max-w-screen-xl px-8 pt-5 flex items-center justify-between">
+        <div className="w-full px-4 pt-5 flex items-center justify-between">
           <Link href="/" className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-200 hover:text-white transition-colors">
             <svg className="h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z" clipRule="evenodd" />
@@ -84,7 +84,7 @@ export default async function PartDetailPage({ params }: { params: Promise<{ id:
           </div>
         </div>
 
-        <div className="mx-auto max-w-screen-xl px-8 pb-8 pt-4">
+        <div className="w-full px-4 pb-8 pt-4">
           <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
             <div>
               <div className="flex items-center gap-2 mb-3">
@@ -132,7 +132,7 @@ export default async function PartDetailPage({ params }: { params: Promise<{ id:
       </div>
 
       {/* ── BODY ── */}
-      <main className="mx-auto max-w-screen-xl w-full px-8 py-8 flex-1">
+      <main className="w-full px-4 py-8 flex-1">
         <div className="flex gap-7">
 
           {/* SIDEBAR */}

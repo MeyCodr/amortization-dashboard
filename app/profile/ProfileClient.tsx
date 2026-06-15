@@ -47,7 +47,7 @@ export default function ProfileClient({ user }: { user: User }) {
 
       {/* Header */}
       <div className="bg-gradient-to-br from-slate-800 via-slate-700 to-slate-900 text-white">
-        <div className="mx-auto max-w-screen-md px-8 py-6">
+        <div className="w-full px-4 py-6">
           <div className="flex items-center justify-between mb-4 pb-3 border-b border-white/10">
             <div className="flex items-center gap-2">
               <span className={`text-[11px] font-bold px-2 py-0.5 rounded border ${
@@ -76,7 +76,7 @@ export default function ProfileClient({ user }: { user: User }) {
         </div>
       </div>
 
-      <main className="mx-auto max-w-screen-md px-8 py-8 space-y-6">
+      <main className="w-full px-4 py-8 space-y-6">
 
         {/* Account info */}
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">

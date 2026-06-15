@@ -135,7 +135,7 @@ export default function DashboardClient({ initialRecords, role, userName }: Prop
 
       {/* ── HERO BANNER ── */}
       <div className="bg-gradient-to-br from-slate-800 via-slate-700 to-slate-900 text-white">
-        <div className="mx-auto max-w-screen-xl px-8 pt-4 pb-6">
+        <div className="w-full px-4 pt-4 pb-6">
 
           {/* User info bar */}
           <div className="flex items-center justify-between mb-5 py-2 border-b border-white/10">
@@ -219,7 +219,7 @@ export default function DashboardClient({ initialRecords, role, userName }: Prop
       </div>
 
       {/* ── BODY ── */}
-      <main className="mx-auto max-w-screen-xl w-full px-8 py-7 flex-1 space-y-6">
+      <main className="w-full px-4 py-7 flex-1 space-y-6">
 
         {/* Recovery by Model */}
         <div>
@@ -418,7 +418,7 @@ export default function DashboardClient({ initialRecords, role, userName }: Prop
       </main>
 
       <footer className="border-t border-gray-200 bg-white mt-auto">
-        <div className="mx-auto max-w-screen-xl px-8 py-4 flex items-center justify-between text-xs text-gray-400">
+        <div className="w-full px-4 py-4 flex items-center justify-between text-xs text-gray-400">
           <span className="text-gray-600">Amortization Volume Tracker · PHN Manufacturing</span>
           <span className="text-gray-600">{new Date().getFullYear()}</span>
         </div>

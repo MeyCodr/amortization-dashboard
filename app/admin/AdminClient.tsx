@@ -289,6 +289,58 @@ function ApproveModal({
   );
 }
 
+function ConfirmModal({
+  title,
+  message,
+  confirmLabel,
+  pendingLabel,
+  onClose,
+  onConfirm,
+  isPending,
+}: {
+  title: string;
+  message: React.ReactNode;
+  confirmLabel: string;
+  pendingLabel: string;
+  onClose: () => void;
+  onConfirm: () => void;
+  isPending: boolean;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+        <div className="text-center">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
+            <svg className="h-6 w-6 text-red-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 6a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 6zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+            </svg>
+          </div>
+          <h3 className="mt-3 text-sm font-extrabold text-gray-900">{title}</h3>
+          <p className="mt-1.5 text-xs text-gray-500">{message}</p>
+        </div>
+        <div className="flex gap-2 pt-4">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isPending}
+            className="flex-1 rounded-lg border border-gray-300 bg-white text-gray-700 text-sm font-semibold py-2 hover:bg-gray-50 transition-colors cursor-pointer disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={isPending}
+            className="flex-1 rounded-lg bg-red-600 hover:bg-red-700 disabled:opacity-60 text-white text-sm font-bold py-2 transition-colors cursor-pointer"
+          >
+            {isPending ? pendingLabel : confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 type Props = { users: UserRow[]; currentUserId: number };
 
 export default function AdminClient({ users: initialUsers, currentUserId }: Props) {
@@ -297,6 +349,8 @@ export default function AdminClient({ users: initialUsers, currentUserId }: Prop
   const [editTarget, setEditTarget] = useState<UserRow | null>(null);
   const [resetTarget, setResetTarget] = useState<UserRow | null>(null);
   const [approveTarget, setApproveTarget] = useState<UserRow | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<UserRow | null>(null);
+  const [rejectTarget, setRejectTarget] = useState<UserRow | null>(null);
   const [roleErrors, setRoleErrors] = useState<Record<number, string>>({});
   const [isPending, startTransition] = useTransition();
 
@@ -327,11 +381,11 @@ export default function AdminClient({ users: initialUsers, currentUserId }: Prop
     });
   }
 
-  function handleReject(userId: number, userName: string) {
-    if (!confirm(`Reject and delete the registration request for "${userName}"?`)) return;
+  function handleRejectConfirm(userId: number) {
     startTransition(async () => {
       try {
         await rejectUser(userId);
+        setRejectTarget(null);
         router.refresh();
       } catch (err) {
         alert((err as Error).message);
@@ -339,11 +393,11 @@ export default function AdminClient({ users: initialUsers, currentUserId }: Prop
     });
   }
 
-  function handleDelete(userId: number, userName: string) {
-    if (!confirm(`Delete user "${userName}"? This cannot be undone.`)) return;
+  function handleDeleteConfirm(userId: number) {
     startTransition(async () => {
       try {
         await deleteUser(userId);
+        setDeleteTarget(null);
         router.refresh();
       } catch (err) {
         alert((err as Error).message);
@@ -356,7 +410,7 @@ export default function AdminClient({ users: initialUsers, currentUserId }: Prop
 
       {/* Header */}
       <div className="bg-gradient-to-br from-slate-800 via-slate-700 to-slate-900 text-white">
-        <div className="mx-auto max-w-screen-lg px-8 py-6 flex items-center justify-between">
+        <div className="w-full px-4 py-6 flex items-center justify-between">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">PHN Manufacturing</p>
             <h1 className="text-2xl font-extrabold tracking-tight">User Management</h1>
@@ -374,7 +428,7 @@ export default function AdminClient({ users: initialUsers, currentUserId }: Prop
         </div>
       </div>
 
-      <main className="mx-auto max-w-screen-lg px-8 py-7 space-y-6">
+      <main className="w-full px-4 py-7 space-y-6">
 
         {/* Role legend */}
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-6 py-4">
@@ -426,7 +480,7 @@ export default function AdminClient({ users: initialUsers, currentUserId }: Prop
                     </button>
                     <button
                       type="button"
-                      onClick={() => handleReject(user.id, user.name)}
+                      onClick={() => setRejectTarget(user)}
                       disabled={isPending}
                       className="text-xs font-bold text-red-600 hover:text-red-700 border border-red-200 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
                     >
@@ -516,7 +570,7 @@ export default function AdminClient({ users: initialUsers, currentUserId }: Prop
                   {user.id !== currentUserId && (
                     <button
                       type="button"
-                      onClick={() => handleDelete(user.id, user.name)}
+                      onClick={() => setDeleteTarget(user)}
                       disabled={isPending}
                       className="text-xs font-semibold text-red-600 hover:text-red-700 border border-red-200 bg-red-50 hover:bg-red-100 px-2.5 py-1.5 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
                     >
@@ -550,6 +604,30 @@ export default function AdminClient({ users: initialUsers, currentUserId }: Prop
           user={approveTarget}
           onClose={() => setApproveTarget(null)}
           onConfirm={(role) => handleApproveConfirm(approveTarget.id, role)}
+          isPending={isPending}
+        />
+      )}
+
+      {deleteTarget && (
+        <ConfirmModal
+          title="Delete user?"
+          message={<><span className="font-semibold">{deleteTarget.name}</span> ({deleteTarget.email}) will be permanently removed. This cannot be undone.</>}
+          confirmLabel="Delete"
+          pendingLabel="Deleting…"
+          onClose={() => setDeleteTarget(null)}
+          onConfirm={() => handleDeleteConfirm(deleteTarget.id)}
+          isPending={isPending}
+        />
+      )}
+
+      {rejectTarget && (
+        <ConfirmModal
+          title="Reject registration?"
+          message={<>The registration request for <span className="font-semibold">{rejectTarget.name}</span> ({rejectTarget.email}) will be permanently deleted.</>}
+          confirmLabel="Reject"
+          pendingLabel="Rejecting…"
+          onClose={() => setRejectTarget(null)}
+          onConfirm={() => handleRejectConfirm(rejectTarget.id)}
           isPending={isPending}
         />
       )}

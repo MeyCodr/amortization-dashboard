@@ -25,6 +25,7 @@ export default function MonthlyPageClient({ part, year, initialMonths, existingA
   const [qtyInput, setQtyInput] = useState("");
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
   const isAdmin = role === "IT";
 
@@ -53,7 +54,7 @@ export default function MonthlyPageClient({ part, year, initialMonths, existingA
   }
 
   async function handleDelete(month: string) {
-    if (!confirm(`Delete the ${month} record? This will recalculate all year totals.`)) return;
+    setConfirmDelete(null);
     setDeleting(month);
     try {
       const updated = { ...months };
@@ -87,7 +88,7 @@ export default function MonthlyPageClient({ part, year, initialMonths, existingA
 
       {/* ── HERO ── */}
       <div className="bg-gradient-to-br from-slate-800 via-slate-700 to-slate-900">
-        <div className="mx-auto max-w-screen-xl px-8 pt-5">
+        <div className="w-full px-4 pt-5">
           <div className="flex items-center gap-2 text-xs">
             <Link href="/" className="font-semibold text-slate-400 hover:text-white transition-colors">Dashboard</Link>
             <span className="text-slate-600">/</span>
@@ -97,7 +98,7 @@ export default function MonthlyPageClient({ part, year, initialMonths, existingA
           </div>
         </div>
 
-        <div className="mx-auto max-w-screen-xl px-8 pt-5 pb-8">
+        <div className="w-full px-4 pt-5 pb-8">
           <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
             <div>
               <div className="flex items-center gap-2 mb-3">
@@ -130,7 +131,7 @@ export default function MonthlyPageClient({ part, year, initialMonths, existingA
       </div>
 
       {/* ── BODY ── */}
-      <main className="mx-auto max-w-screen-xl w-full px-8 py-8 flex-1">
+      <main className="w-full px-4 py-8 flex-1">
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
 
           <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
@@ -212,7 +213,7 @@ export default function MonthlyPageClient({ part, year, initialMonths, existingA
                             </button>}
                             {isAdmin && (
                               <button
-                                onClick={() => handleDelete(month)}
+                                onClick={() => setConfirmDelete(month)}
                                 disabled={deleting === month}
                                 className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-red-200 text-[10px] font-bold text-red-600 bg-red-50 hover:bg-red-100 disabled:opacity-50 transition-colors cursor-pointer"
                               >
@@ -324,6 +325,40 @@ export default function MonthlyPageClient({ part, year, initialMonths, existingA
                 className="px-5 py-2 rounded-lg bg-blue-600 text-xs font-bold text-white hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
               >
                 {modal.mode === "add" ? "Add Record" : "Save Changes"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── DELETE CONFIRMATION ── */}
+      {confirmDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setConfirmDelete(null)} />
+          <div className="relative z-10 w-full max-w-sm bg-white rounded-2xl shadow-2xl">
+            <div className="px-6 pt-6 pb-2 text-center">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
+                <svg className="h-6 w-6 text-red-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 6a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 6zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <h2 className="mt-3 text-sm font-extrabold text-gray-900">Delete {confirmDelete} record?</h2>
+              <p className="mt-1.5 text-xs text-gray-500">
+                This will permanently remove the {confirmDelete} delivery record for {year} and recalculate all year totals. This action cannot be undone.
+              </p>
+            </div>
+            <div className="px-6 py-4 mt-2 flex justify-center gap-3">
+              <button
+                onClick={() => setConfirmDelete(null)}
+                className="px-4 py-2 rounded-lg border border-gray-300 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDelete(confirmDelete)}
+                className="px-5 py-2 rounded-lg bg-red-600 text-xs font-bold text-white hover:bg-red-700 transition-colors cursor-pointer"
+              >
+                Delete
               </button>
             </div>
           </div>
