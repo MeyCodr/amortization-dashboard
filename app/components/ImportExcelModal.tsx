@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { importRecords, ImportRecordsResult } from "../actions/records";
-import { parseAmortizationExcel } from "../lib/importAmortizationExcel";
+import { getWorkbookSheets, parseAmortizationExcel } from "../lib/importAmortizationExcel";
 
 type Props = {
   onClose: () => void;
@@ -12,6 +12,8 @@ type Props = {
 export default function ImportExcelModal({ onClose, onSuccess }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [fileName, setFileName] = useState<string | null>(null);
+  const [sheets, setSheets] = useState<string[]>([]);
+  const [selectedSheet, setSelectedSheet] = useState(0);
   const [rowCount, setRowCount] = useState<number | null>(null);
   const [parseErrors, setParseErrors] = useState<string[]>([]);
   const [parseWarnings, setParseWarnings] = useState<string[]>([]);
@@ -19,19 +21,12 @@ export default function ImportExcelModal({ onClose, onSuccess }: Props) {
   const [result, setResult] = useState<ImportRecordsResult | null>(null);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
 
-  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    setResult(null);
+  async function parseAndPreview(file: File, sheetIndex: number) {
     setParseErrors([]);
     setParseWarnings([]);
     setRowCount(null);
     setPendingFile(null);
-    setFileName(null);
-
-    if (!file) return;
-
-    setFileName(file.name);
-    const parsed = await parseAmortizationExcel(file);
+    const parsed = await parseAmortizationExcel(file, sheetIndex);
     setParseErrors(parsed.errors);
     setParseWarnings(parsed.warnings);
     setRowCount(parsed.records.length);
@@ -40,12 +35,36 @@ export default function ImportExcelModal({ onClose, onSuccess }: Props) {
     }
   }
 
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    setResult(null);
+    setSheets([]);
+    setSelectedSheet(0);
+    setFileName(null);
+
+    if (!file) return;
+
+    setFileName(file.name);
+    const sheetNames = await getWorkbookSheets(file);
+    setSheets(sheetNames);
+    await parseAndPreview(file, 0);
+  }
+
+  async function handleSheetChange(index: number) {
+    setSelectedSheet(index);
+    setResult(null);
+    if (pendingFile || fileName) {
+      const file = inputRef.current?.files?.[0];
+      if (file) await parseAndPreview(file, index);
+    }
+  }
+
   async function handleImport() {
     if (!pendingFile) return;
     setImporting(true);
     setResult(null);
     try {
-      const parsed = await parseAmortizationExcel(pendingFile);
+      const parsed = await parseAmortizationExcel(pendingFile, selectedSheet);
       if (parsed.errors.length > 0 || parsed.records.length === 0) {
         setParseErrors(parsed.errors.length ? parsed.errors : ["No valid records to import."]);
         return;
@@ -101,6 +120,28 @@ export default function ImportExcelModal({ onClose, onSuccess }: Props) {
             </p>
             <p className="text-xs text-gray-500 mt-1">Click to browse</p>
           </div>
+
+          {sheets.length > 1 && (
+            <div>
+              <p className="text-xs font-semibold text-gray-600 mb-1.5">Select sheet to import:</p>
+              <div className="flex flex-wrap gap-1.5">
+                {sheets.map((name, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => handleSheetChange(i)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors cursor-pointer ${
+                      selectedSheet === i
+                        ? "bg-blue-600 text-white border-blue-600"
+                        : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
+                    }`}
+                  >
+                    {name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {rowCount != null && parseErrors.length === 0 && (
             <p className="text-sm text-gray-700">

@@ -315,7 +315,14 @@ function readStaticField(
   return kind === "number" ? cellNumber(cell) : cellText(cell);
 }
 
-export async function parseAmortizationExcel(file: File): Promise<ParseExcelResult> {
+export async function getWorkbookSheets(file: File): Promise<string[]> {
+  const buffer = await file.arrayBuffer();
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(buffer);
+  return workbook.worksheets.map((ws) => ws.name);
+}
+
+export async function parseAmortizationExcel(file: File, sheetIndex = 0): Promise<ParseExcelResult> {
   const errors: string[] = [];
   const warnings: string[] = [];
   const records: AmortizationRecord[] = [];
@@ -324,9 +331,9 @@ export async function parseAmortizationExcel(file: File): Promise<ParseExcelResu
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.load(buffer);
 
-  const sheet = workbook.worksheets[0];
+  const sheet = workbook.worksheets[sheetIndex];
   if (!sheet) {
-    return { records: [], errors: ["Workbook has no worksheets."], warnings };
+    return { records: [], errors: [`Sheet at index ${sheetIndex} not found. The workbook has ${workbook.worksheets.length} sheet(s).`], warnings };
   }
 
   const headerRowNum = findHeaderRow(sheet);
@@ -439,5 +446,33 @@ export async function parseAmortizationExcel(file: File): Promise<ParseExcelResu
     warnings.push("No data rows found below the header.");
   }
 
-  return { records, errors, warnings };
+  // Merge duplicate Part Nos: sum qtyDel, investmentRecovered, and monthly qty; keep last row's balance and static fields.
+  const merged = new Map<string, AmortizationRecord>();
+  for (const record of records) {
+    const key = record.partNo.trim().toUpperCase();
+    const existing = merged.get(key);
+    if (!existing) {
+      merged.set(key, { ...record, years: { ...record.years } });
+      continue;
+    }
+    warnings.push(`Duplicate PART NO "${record.partNo}" found — values merged (numeric fields summed).`);
+    for (const [year, yData] of Object.entries(record.years)) {
+      if (existing.years[year]) {
+        existing.years[year].qtyDel += yData.qtyDel;
+        existing.years[year].investmentRecovered += yData.investmentRecovered;
+        existing.years[year].balanceInvestment = yData.balanceInvestment;
+        if (yData.months && existing.years[year].months) {
+          for (const [m, v] of Object.entries(yData.months)) {
+            existing.years[year].months![m] = (existing.years[year].months![m] ?? 0) + v;
+          }
+        }
+      } else {
+        existing.years[year] = { ...yData };
+      }
+    }
+    existing.totalQtyDel += record.totalQtyDel;
+    existing.totalBalQty = existing.ammVol - existing.totalQtyDel;
+  }
+
+  return { records: [...merged.values()], errors, warnings };
 }

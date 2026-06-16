@@ -430,6 +430,7 @@ export default function DashboardClient({ initialRecords, role, userName }: Prop
           onSubmit={addRecord}
           saving={saving}
           lockedCategory={lockedCategory}
+          existingPartNos={new Set(initialRecords.map(r => r.partNo.toUpperCase()))}
         />
       )}
 
