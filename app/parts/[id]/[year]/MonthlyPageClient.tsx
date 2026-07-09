@@ -266,7 +266,7 @@ export default function MonthlyPageClient({ part, year, initialMonths, existingA
                 <h2 className="text-sm font-extrabold text-gray-900">
                   {modal.mode === "add" ? "Add Monthly Record" : `Update ${modal.month} Record`}
                 </h2>
-                <p className="text-xs text-gray-500 mt-0.5">{year} · {part.partName}</p>
+                <p className="text-xs text-gray-500 mt-0.5">{year} · {part.partNo}</p>
               </div>
               <button onClick={() => setModal(null)} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 transition-colors cursor-pointer">
                 <svg className="h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
