@@ -10,7 +10,9 @@ export default async function MonthlyBreakdownPage({
   params: Promise<{ id: string; year: string }>;
 }) {
   const { id, year } = await params;
+  console.log("[year-page] id=", id, "year=", year);
   const [part, session] = await Promise.all([getPartById(id), getCurrentSession()]);
+  console.log("[year-page] part=", part ? part.partNo : null, "session=", session?.userId ?? null);
   if (!part) notFound();
 
   const yearData = part.years[year] ?? null;

@@ -28,6 +28,7 @@ export default function MonthlyPageClient({ part, year, initialMonths, existingA
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
   const isAdmin = role === "IT";
+  const canEdit = role !== "USER";
 
   const id = part.id;
   const currentYear = new Date().getFullYear().toString();
@@ -142,7 +143,7 @@ export default function MonthlyPageClient({ part, year, initialMonths, existingA
                 {saving && <span className="ml-2 text-blue-500">Saving…</span>}
               </p>
             </div>
-            {isCurrentYear ? (
+            {isCurrentYear && canEdit ? (
               <button
                 onClick={openAdd}
                 disabled={unrecordedMonths.length === 0}
@@ -158,7 +159,7 @@ export default function MonthlyPageClient({ part, year, initialMonths, existingA
                 <svg className="h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clipRule="evenodd" />
                 </svg>
-                Past year — view only
+                {isCurrentYear ? "View only" : "Past year — view only"}
               </span>
             )}
           </div>
@@ -166,7 +167,9 @@ export default function MonthlyPageClient({ part, year, initialMonths, existingA
           {recordedMonths.length === 0 ? (
             <div className="py-12 text-center space-y-3">
               <p className="text-sm font-semibold text-gray-500">No monthly records yet</p>
-              <p className="text-xs text-gray-400">Click &quot;Add Record&quot; to start recording deliveries</p>
+              <p className="text-xs text-gray-400">
+                {isCurrentYear && canEdit ? "Click “Add Record” to start recording deliveries" : "No deliveries have been recorded for this year"}
+              </p>
               {existingAnnualQty !== null && (
                 <div className="mx-auto max-w-sm rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-left">
                   <p className="text-xs font-bold text-amber-800">Annual total on record: {fmtN(existingAnnualQty)} PCS</p>
@@ -201,7 +204,7 @@ export default function MonthlyPageClient({ part, year, initialMonths, existingA
                         <td className="px-6 py-3.5 text-right font-bold text-emerald-600">{fmtC(cRec)}</td>
                         <td className="px-6 py-3.5 text-right">
                           <div className="inline-flex items-center gap-1.5">
-                            {isCurrentYear && <button
+                            {isCurrentYear && canEdit && <button
                               onClick={() => openUpdate(month)}
                               className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-gray-200 text-[10px] font-bold text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
                             >
