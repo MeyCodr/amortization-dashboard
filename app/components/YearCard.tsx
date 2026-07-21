@@ -20,11 +20,13 @@ type Props = {
   yearPct: number;
   totalCost: number;
   palette: Palette;
+  role: string;
 };
 
-export default function YearCard({ partId, year, currentYear, y, cumPct, yearPct, palette }: Props) {
+export default function YearCard({ partId, year, currentYear, y, cumPct, yearPct, palette, role }: Props) {
   const hasData = y.qtyDel > 0 || y.investmentRecovered > 0;
   const isPast = year < currentYear;
+  const isAdmin = role === "IT";
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
@@ -71,16 +73,14 @@ export default function YearCard({ partId, year, currentYear, y, cumPct, yearPct
           </p>
         </div>
 
-        {/* Past year with no monthly data — hide the link entirely */}
-        {!(isPast && !y.months) && (
+        {/* Past year with no monthly data — hide the link unless an admin can add one */}
+        {!(isPast && !y.months && !isAdmin) && (
           <Link
             href={`/parts/${partId}/${year}`}
             className="flex items-center justify-between w-full rounded-lg border border-gray-200 px-4 py-2.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
           >
             <span>
-              {isPast
-                ? "View monthly deliveries"
-                : y.months ? "View monthly deliveries" : "Add monthly deliveries"}
+              {y.months ? "View monthly deliveries" : "Add monthly deliveries"}
             </span>
             <svg className="h-3.5 w-3.5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clipRule="evenodd" />

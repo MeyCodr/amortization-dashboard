@@ -24,11 +24,12 @@ type Props = {
   partId: string;
   yearEntries: YearEntry[];
   totalCost: number;
+  role: string;
 };
 
 const YEAR_PAGE = 3;
 
-export default function YearCardCarousel({ partId, yearEntries, totalCost }: Props) {
+export default function YearCardCarousel({ partId, yearEntries, totalCost, role }: Props) {
   const currentYear = new Date().getFullYear().toString();
   const [yearOffset, setYearOffset] = useState(0);
   const router = useRouter();
@@ -119,6 +120,7 @@ export default function YearCardCarousel({ partId, yearEntries, totalCost }: Pro
               yearPct={yearPct}
               totalCost={totalCost}
               palette={palette}
+              role={role}
             />
           ))}
         </div>

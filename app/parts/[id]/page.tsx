@@ -212,6 +212,7 @@ export default async function PartDetailPage({ params }: { params: Promise<{ id:
               partId={part.id}
               yearEntries={yearEntries}
               totalCost={part.totalCost}
+              role={role}
             />
 
             {/* Timeline table */}

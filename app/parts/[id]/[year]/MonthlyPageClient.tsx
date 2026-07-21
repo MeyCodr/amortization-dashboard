@@ -33,6 +33,9 @@ export default function MonthlyPageClient({ part, year, initialMonths, existingA
   const id = part.id;
   const currentYear = new Date().getFullYear().toString();
   const isCurrentYear = year === currentYear;
+  // Closed (past) years are normally locked; IT admins may override to correct records.
+  const canEditYear = isCurrentYear ? canEdit : isAdmin;
+  const isAdminOverride = canEditYear && !isCurrentYear;
   const ratePerUnit = part.toolingCost + part.packagingCost + part.others;
   const recordedMonths = MONTH_ORDER.filter((m) => (months[m] ?? 0) > 0);
   const unrecordedMonths = MONTH_ORDER.filter((m) => (months[m] ?? 0) === 0);
@@ -113,6 +116,14 @@ export default function MonthlyPageClient({ part, year, initialMonths, existingA
               </div>
               <h1 className="text-3xl font-extrabold tracking-tight text-white leading-tight">{part.partName}</h1>
               <p className="mt-1.5 text-sm font-semibold text-slate-300">{year} · Monthly Delivery Breakdown</p>
+              {isAdminOverride && (
+                <span className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-bold text-amber-200 bg-amber-500/20 ring-1 ring-amber-400/50 px-2.5 py-1 rounded-full">
+                  <svg className="h-3 w-3" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clipRule="evenodd" />
+                  </svg>
+                  Admin override — editing closed period
+                </span>
+              )}
             </div>
 
             <div className="flex gap-6 lg:gap-10 shrink-0">
@@ -143,7 +154,7 @@ export default function MonthlyPageClient({ part, year, initialMonths, existingA
                 {saving && <span className="ml-2 text-blue-500">Saving…</span>}
               </p>
             </div>
-            {isCurrentYear && canEdit ? (
+            {canEditYear ? (
               <button
                 onClick={openAdd}
                 disabled={unrecordedMonths.length === 0}
@@ -168,7 +179,7 @@ export default function MonthlyPageClient({ part, year, initialMonths, existingA
             <div className="py-12 text-center space-y-3">
               <p className="text-sm font-semibold text-gray-500">No monthly records yet</p>
               <p className="text-xs text-gray-400">
-                {isCurrentYear && canEdit ? "Click “Add Record” to start recording deliveries" : "No deliveries have been recorded for this year"}
+                {canEditYear ? "Click “Add Record” to start recording deliveries" : "No deliveries have been recorded for this year"}
               </p>
               {existingAnnualQty !== null && (
                 <div className="mx-auto max-w-sm rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-left">
@@ -204,7 +215,7 @@ export default function MonthlyPageClient({ part, year, initialMonths, existingA
                         <td className="px-6 py-3.5 text-right font-bold text-emerald-600">{fmtC(cRec)}</td>
                         <td className="px-6 py-3.5 text-right">
                           <div className="inline-flex items-center gap-1.5">
-                            {isCurrentYear && canEdit && <button
+                            {canEditYear && <button
                               onClick={() => openUpdate(month)}
                               className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-gray-200 text-[10px] font-bold text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
                             >

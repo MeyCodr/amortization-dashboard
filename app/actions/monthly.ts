@@ -15,7 +15,9 @@ export async function saveMonthlyData(
   if (typeof partId !== "string" || !partId.trim()) throw new Error("Invalid part ID.");
 
   const currentYear = new Date().getFullYear().toString();
-  if (year !== currentYear) throw new Error("Monthly deliveries can only be edited for the current year.");
+  if (year !== currentYear && session.role !== "IT") {
+    throw new Error("Monthly deliveries can only be edited for the current year.");
+  }
 
   const part = await prisma.part.findUnique({
     where: { id: partId },
