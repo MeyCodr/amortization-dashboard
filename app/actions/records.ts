@@ -116,10 +116,8 @@ export async function createRecord(record: AmortizationRecord): Promise<void> {
   if (role === "BD" && record.category !== "CUSTOMER") throw new Error("BD role can only add CUSTOMER records.");
   if (role === "PVD" && record.category !== "VENDOR") throw new Error("PVD role can only add VENDOR records.");
 
-  const normalizedId = record.partNo.trim().toUpperCase();
   await prisma.part.create({
     data: {
-      id: normalizedId,
       ...partDataInput(record),
       yearRecords: { create: yearRecordsCreateInput(record) },
     },
@@ -265,7 +263,6 @@ export async function importRecords(records: AmortizationRecord[]): Promise<Impo
       } else {
         await prisma.part.create({
           data: {
-            id: record.partNo,
             ...partDataInput(record),
             yearRecords: { create: yearRecordsCreateInput(record) },
           },
